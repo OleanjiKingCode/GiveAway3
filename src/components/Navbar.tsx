@@ -12,7 +12,10 @@ export const Navbar = () => {
         </Link>
         <div className="flex gap-5 justify-center items-center">
           <ConnectButton />
-          <Link href="/" target="_blank">
+          <Link
+            href="https://github.com/OleanjiKingCode/GiveAway3"
+            target="_blank"
+          >
             <RiGithubFill className="text-xl" />
           </Link>
         </div>
