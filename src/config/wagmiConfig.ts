@@ -5,5 +5,5 @@ const Id = process.env.NEXT_PUBLIC_PROJECT_ID ?? "";
 export const config = getDefaultConfig({
   appName: "GiveAway3",
   projectId: Id,
-  chains: [polygonMumbai, fantomTestnet, arbitrumSepolia],
+  chains: [polygonMumbai, arbitrumSepolia, fantomTestnet],
 });
