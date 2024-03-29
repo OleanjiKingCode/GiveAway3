@@ -1,9 +1,9 @@
-import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { polygon, polygonMumbai } from 'wagmi/chains';
+import { getDefaultConfig } from "@rainbow-me/rainbowkit";
+import { polygonMumbai, fantomTestnet, arbitrumSepolia } from "wagmi/chains";
 
-const Id = process.env.NEXT_PUBLIC_PROJECT_ID ?? '';
+const Id = process.env.NEXT_PUBLIC_PROJECT_ID ?? "";
 export const config = getDefaultConfig({
-  appName: 'GiveAway3',
+  appName: "GiveAway3",
   projectId: Id,
-  chains: [polygonMumbai, polygon],
+  chains: [polygonMumbai, fantomTestnet, arbitrumSepolia],
 });
