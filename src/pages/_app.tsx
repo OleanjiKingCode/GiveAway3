@@ -5,6 +5,7 @@ import type { AppProps } from "next/app";
 import { WagmiProvider } from "wagmi";
 import "../styles/globals.css";
 import { config } from "@/config/wagmiConfig";
+import { Toaster } from "@/components/ui/toaster";
 
 const client = new QueryClient();
 
@@ -19,6 +20,7 @@ export default function App({ Component, pageProps }: AppProps) {
           })}
         >
           <Component {...pageProps} />
+          <Toaster />
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

@@ -1,35 +1,29 @@
 import { Roboto } from "next/font/google";
 import { Navbar } from "@/components/Navbar";
 import React, { useEffect, useState } from "react";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
-import { FaArrowRight } from "react-icons/fa";
-import {
-  FANTOM_CONTRACT_ADDRESS,
-  GIVEAWAY_CHAINS,
-  invoices,
-} from "@/components/data";
-import { Button } from "@/components/ui/button";
-import { RiLoader4Fill } from "react-icons/ri";
+import { GIVEAWAY_CHAINS, invoices } from "@/components/data";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { useAccount, useSwitchChain, useWriteContract } from "wagmi";
+import {
+  useAccount,
+  useBalance,
+  useReadContract,
+  useSwitchChain,
+  useWriteContract,
+} from "wagmi";
 import { config } from "@/config/wagmiConfig";
 import { SwitchChain } from "@/utils/switchNetwork";
-import { erc20Abi, isAddress, parseUnits, toHex } from "viem";
+import { erc20Abi, formatEther, isAddress, parseUnits, toHex } from "viem";
 import { Txns } from "@/components/txns";
-import { Input } from "@/components/ui/input";
 import {
   AxelarQueryAPI,
   Environment,
   GasToken,
 } from "@axelar-network/axelarjs-sdk";
 import GiveAwayContractABI from "@/components/ABI.json";
+import { useToast } from "@/components/ui/use-toast";
+import { ActionBtns } from "@/components/ActionBtns";
+import { ActionArea } from "@/components/ActionArea";
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -39,36 +33,53 @@ const roboto = Roboto({
 export default function Giveaway() {
   const { chains } = useSwitchChain({ config });
   const { address, chain } = useAccount();
+  const { toast } = useToast();
 
+  //user balance
+  const { data: userBal } = useBalance({
+    address: address,
+  });
   // txn data
   const [txnLoading, setTxnLoading] = useState(false);
-  const [txnData, setTxnData] = useState<any>(invoices);
+  const [txnData, setTxnData] = useState<any>();
 
   //states of the giveaway detailss
   const [senderChain, setSenderChain] = useState(
     chain ? chains.indexOf(chain).toString() : "0"
   );
   const [receiverChain, setReceiverChain] = useState("arbitrum-sepolia");
-  const [token, setToken] = useState("aUSDC");
   const [tokenAmount, setTokenAmount] = useState(20);
   const [addresses, setAddresses] = useState("0xabc...,0x123...");
 
   /// button states
-  const [approveBtn, setAprroveBtn] = useState(true);
+  const [approveBtn, setAprroveBtn] = useState(false);
   const [approveBtnLoading, setAprroveBtnLoading] = useState(false);
   const [sendBtnLoading, setSendBtnLoading] = useState(false);
   const [sendBtn, setSendBtn] = useState(true);
+  const [textAreaDisabled, setTextAreaDisabled] = useState(true);
 
   /// Axelar
   const api = new AxelarQueryAPI({ environment: Environment.TESTNET });
 
   // Approve token to be spent by the contract
-  const { data: USDCData, writeContractAsync: approveWrite } =
-    useWriteContract();
+  const { writeContractAsync: approveWrite } = useWriteContract();
 
   // Send tokens giveaway
-  const { data: giveawayData, writeContractAsync: giveawayWrite } =
-    useWriteContract();
+  const { writeContractAsync: giveawayWrite } = useWriteContract();
+
+  // read data from contract
+  const {
+    data: historyData,
+    refetch,
+    isLoading,
+    isSuccess: historyDataSuccessful,
+  } = useReadContract({
+    abi: GiveAwayContractABI,
+    address: GIVEAWAY_CHAINS[Number(senderChain)]
+      .Giveaway_Address as `0x${string}`,
+    functionName: "getAllGiveAwayItemsPerAddress",
+    args: [address],
+  });
 
   const changeNetwork = async (e: string) => {
     setSenderChain(e);
@@ -113,16 +124,28 @@ export default function Giveaway() {
 
   const TokenApproval = async () => {
     try {
-      if (!tokenAmount) {
-        //toast.error("Please enter amount", toastOptions);
+      setAprroveBtnLoading(true);
+      if (!tokenAmount || tokenAmount === 0) {
+        toast({
+          description: "Please enter a valid token amount",
+          style: { backgroundColor: "red", color: "white" },
+        });
+        setAprroveBtnLoading(false);
         return;
       }
       let currentChain = GIVEAWAY_CHAINS[Number(senderChain)];
-      // toast saying starting
-      setAprroveBtnLoading(true);
+
+      toast({
+        description: "Approving your token",
+        style: {
+          backgroundColor: "#c8dcfc",
+          border: "1px solid blue",
+          color: "black",
+        },
+      });
       await approveWrite(
         {
-          address: currentChain.aUSDC_CA as `0x${string}`, // Address of the aUSDC contract on Fantom
+          address: currentChain.aUSDC_CA as `0x${string}`,
           abi: erc20Abi,
           functionName: "approve",
           args: [
@@ -134,18 +157,26 @@ export default function Giveaway() {
           onSuccess: () => {
             setAprroveBtnLoading(false);
             setAprroveBtn(true);
+            setTextAreaDisabled(false);
             setSendBtn(false);
-
-            // toast saying done
+            toast({
+              description: "Successfully approved token",
+              style: {
+                backgroundColor: "#38ff89",
+                border: "1px solid green",
+                color: "black",
+              },
+            });
           },
           onError: () => {
             setAprroveBtnLoading(false);
-            // toast saying error
+            toast({
+              description: "Error occured during approval",
+              style: { backgroundColor: "red", color: "white" },
+            });
           },
         }
       );
-
-      //toast.info("Approving...", toastOptions);
     } catch (error) {
       console.log(error);
     }
@@ -153,18 +184,51 @@ export default function Giveaway() {
 
   const SendGiveaway = async () => {
     try {
-      let gasFee: any = await gasEstimator();
+      setSendBtnLoading(true);
 
-      if (!gasFee) return null;
+      let gasFee: any = await gasEstimator();
+      if (Number(userBal?.formatted) <= Number(formatEther(gasFee))) {
+        toast({
+          title: "You dont have enough funds for gas",
+          description: `You need ${(
+            Number(formatEther(gasFee)) - Number(userBal?.formatted)
+          ).toFixed(3)} ETH more`,
+          style: { backgroundColor: "red", color: "white" },
+        });
+        setSendBtnLoading(false);
+        return;
+      }
 
       let addressesInfo = checkAllAddresses();
-
-      if (!addressesInfo.isAllCorrect) return null;
-
+      if (!addressesInfo.isAllCorrect) {
+        toast({
+          description:
+            "Receiving addresses contain a zero or an invalid address(es)",
+          style: { backgroundColor: "red", color: "white" },
+        });
+        setSendBtnLoading(false);
+        return;
+      }
       let currentChain = GIVEAWAY_CHAINS[Number(senderChain)];
 
-      // toast saying starting
-      setSendBtnLoading(true);
+      if (currentChain.chainName <= receiverChain) {
+        toast({
+          description: "You tried sending to the same chain",
+          style: { backgroundColor: "red", color: "white" },
+        });
+        setSendBtnLoading(false);
+        return;
+      }
+
+      setTextAreaDisabled(true);
+      toast({
+        description: "Giving away tokens",
+        style: {
+          backgroundColor: "#c8dcfc",
+          border: "1px solid blue",
+          color: "black",
+        },
+      });
       await giveawayWrite(
         {
           address: currentChain.Giveaway_Address as `0x${string}`,
@@ -183,25 +247,47 @@ export default function Giveaway() {
         {
           onSuccess: () => {
             setSendBtnLoading(false);
+            refetch();
             setSendBtn(true);
             setAprroveBtn(false);
-
-            // toast saying done
+            toast({
+              description: "Giveaway successfully done!",
+              style: {
+                backgroundColor: "#38ff89",
+                border: "1px solid green",
+                color: "black",
+              },
+            });
           },
           onError: () => {
-            setSendBtnLoading (false);
-            // toast saying error
+            setSendBtnLoading(false);
+            setTextAreaDisabled(false);
+            toast({
+              description: "Error occured during giveaway",
+              style: { backgroundColor: "red", color: "white" },
+            });
           },
         }
       );
     } catch (error) {
+      setSendBtnLoading(false);
       console.log(error);
     }
   };
 
   useEffect(() => {
     setSenderChain(chain ? chains.indexOf(chain).toString() : "0");
+    refetch();
   }, [chain]);
+
+  useEffect(() => {
+    console.log(
+      historyDataSuccessful,
+      historyData,
+      GIVEAWAY_CHAINS[Number(senderChain)]
+    );
+    setTxnData(historyData);
+  }, [historyDataSuccessful]);
 
   return (
     <div
@@ -210,111 +296,37 @@ export default function Giveaway() {
       <Navbar />
       <div className="w-full flex flex-col min-h-[80vh] items-center justify-center px-3 md:px-20 mt-[140px]">
         <div className=" w-full flex flex-col items-center justify-center gap-10 mb-[10px]">
-          <div className="w-full flex gap-6 items-center justify-center">
-            <div className="flex flex-col gap-3 items-center">
-              <Label>Sending Chain</Label>
-              <Select
-                onValueChange={(e) => changeNetwork(e)}
-                value={senderChain}
-              >
-                <SelectTrigger className="w-[300px]">
-                  <SelectValue placeholder="Select chain to send from" />
-                </SelectTrigger>
-                <SelectContent>
-                  {GIVEAWAY_CHAINS.map((chain, i) => (
-                    <SelectItem value={i.toString()} key={i}>
-                      {chain.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <FaArrowRight className="h-3 w-3 mt-5" />
-
-            <div className="flex flex-col gap-3 items-center">
-              <Label>Token</Label>
-              <div className="flex gap-3 items-center justify-center">
-                <Input
-                  type="number"
-                  value={tokenAmount}
-                  min={0}
-                  className="w-fit"
-                  onChange={(e) => setTokenAmount(Number(e.target.value))}
-                />
-                <span>aUSDC</span>
-                {/* <Select onValueChange={(e) => setToken(e)} value={token}>
-                  <SelectTrigger className="w-[150px]">
-                    <SelectValue placeholder="Token" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ASSET_COINS.map((chain, i) => (
-                      <SelectItem value={chain.symbol} key={i}>
-                        {chain.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select> */}
-              </div>
-            </div>
-
-            <FaArrowRight className="h-3 w-3 mt-5" />
-
-            <div className="flex flex-col gap-3 items-center">
-              <Label>Receiving Chain</Label>
-              <Select
-                onValueChange={(e) => setReceiverChain(e)}
-                value={receiverChain}
-              >
-                <SelectTrigger className="w-[300px]">
-                  <SelectValue placeholder="Select chain of receivers" />
-                </SelectTrigger>
-                <SelectContent>
-                  {GIVEAWAY_CHAINS.map((chain, i) => (
-                    <SelectItem value={chain.chainName} key={i}>
-                      {chain.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <ActionArea
+            changeNetwork={changeNetwork}
+            senderChain={senderChain}
+            tokenAmount={tokenAmount}
+            setTokenAmount={setTokenAmount}
+            setReceiverChain={setReceiverChain}
+            receiverChain={receiverChain}
+          />
 
           <div className="w-[60%] flex flex-col gap-3">
             <Label htmlFor="addresses">Receivers Addresses:</Label>
             <Textarea
               placeholder="Paste or type in receivers addresses"
               id="addresses"
+              disabled={textAreaDisabled}
               value={addresses}
               onChange={(e) => setAddresses(e.target.value)}
             />
           </div>
 
-          <div className="w-full flex justify-center gap-10 py-10">
-            <Button
-              disabled={approveBtn}
-              className="bg-pink-200 hover:bg-pink-600 rounded-md shadow-md text-sm w-fit  text-black"
-            >
-              {approveBtnLoading ? (
-                <RiLoader4Fill className="animate-spin w-6 h-6" />
-              ) : (
-                "Approve Tokens"
-              )}
-            </Button>
-            <Button
-              disabled={sendBtn}
-              className="bg-pink-200 hover:bg-pink-600 rounded-md shadow-md text-sm w-fit  text-black"
-            >
-              {sendBtnLoading ? (
-                <RiLoader4Fill className="animate-spin w-6 h-6" />
-              ) : (
-                "Send Giveaway"
-              )}
-            </Button>
-          </div>
+          <ActionBtns
+            approveBtn={approveBtn}
+            sendBtn={sendBtn}
+            TokenApproval={TokenApproval}
+            SendGiveaway={SendGiveaway}
+            approveBtnLoading={approveBtnLoading}
+            sendBtnLoading={sendBtnLoading}
+          />
         </div>
 
-        <Txns data={txnData} isLoading={txnLoading} />
+        <Txns data={txnData} isLoading={isLoading} />
       </div>
     </div>
   );

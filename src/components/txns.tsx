@@ -11,6 +11,9 @@ import {
   TableCell,
 } from "./ui/table";
 import { RiLoader4Fill } from "react-icons/ri";
+import { formatUnits } from "viem";
+import { formatTimestamp } from "@/utils/formatTimeStamp";
+import { Popover, PopoverTrigger, PopoverContent } from "./ui/popover";
 
 export const Txns = ({
   data,
@@ -19,6 +22,11 @@ export const Txns = ({
   data: any;
   isLoading: boolean;
 }) => {
+  function convertTimestampToDateTime(timestamp: number) {
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+  }
+
   return (
     <>
       {" "}
@@ -26,77 +34,72 @@ export const Txns = ({
         Transaction History
       </h2>
       <div className="bg-white flex flex-col gap-3 w-full p-4 rounded-lg mb-10 ">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[100px]">#</TableHead>
-              <TableHead className="">TxnHash</TableHead>
-              <TableHead className="">Giver</TableHead>
-              <TableHead className="w-[200px]">Total Amount</TableHead>
-              <TableHead className="w-[200px]">Amount per receiver</TableHead>
-              <TableHead className="">No of receivers</TableHead>
-              <TableHead className="">Date</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <div className="w-full flex flex-col gap-2 items-center justify-center">
-                <RiLoader4Fill className="animate-spin w-16 h-16" />
-                <span className="text-lg">Loading Data</span>
-              </div>
-            ) : (
-              <>
-                {data.length === 0 && (
-                  <div className="w-full flex items-center justify-center">
-                    <span className="text-lg">No Data Available</span>
-                  </div>
-                )}
-                {data.length > 0 &&
-                  data.map((invoice: any, i: number) => (
+        {isLoading ? (
+          <div className="w-full flex flex-col gap-2 py-32 items-center justify-center">
+            <RiLoader4Fill className="animate-spin w-16 h-16" />
+            <span className="text-base">Loading Giveaway Data</span>
+          </div>
+        ) : (
+          <div className="w-full">
+            {data && data.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="">#</TableHead>
+                    <TableHead className="">Receivers</TableHead>
+                    <TableHead className="">Destion Chain</TableHead>
+                    <TableHead className="">Token</TableHead>
+                    <TableHead className="">Total Amount</TableHead>
+                    <TableHead className="">Amount per receiver</TableHead>
+                    <TableHead className="">No of receivers</TableHead>
+                    <TableHead className="">Date</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data?.map((invoice: any, i: number) => (
                     <TableRow key={i}>
+                      <TableCell className="font-medium">{i + 1}</TableCell>
                       <TableCell className="font-medium">
-                        {invoice["#"]}
+                        <Popover>
+                          <PopoverTrigger>View All Receivers</PopoverTrigger>
+                          <PopoverContent>
+                            <div className="w-full">
+                              {invoice.receivers?.map(
+                                (person: any, i: number) => (
+                                  <p key={i}>{person}</p>
+                                )
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
                       </TableCell>
+                      <TableCell>{invoice.destinationChain}</TableCell>
+                      <TableCell>{invoice.symbol}</TableCell>
                       <TableCell>
-                        <div className="p-1 text-gray-800 bg-gray-400 rounded-md font-medium text-center">
-                          {shortenAccount(invoice.txnHash)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="w-fit">
-                        <div className="py-1 px-2 bg-gray-100 flex items-center rounded-md justify-start w-fit">
-                          <span className="font-semibold text-black text-sm">
-                            {shortenAccount(invoice.Giver)}
-                          </span>
-                          <IoCopy
-                            className="ml-2 h-4 w-4 text-blue-400 cursor-pointer"
-                            title="Copy"
-                          />
-                          <TiExport
-                            className="ml-3 h-4 w-4 text-green-800 cursor-pointer"
-                            title="explorer"
-                          />
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="p-1 text-gray-800 bg-gray-400 rounded-md font-medium text-center">
-                          {invoice.totalAmount}
-                        </div>
+                        {formatUnits(invoice.totalAmount, 6)}
                       </TableCell>
                       <TableCell className="font-medium">
-                        {invoice.amountPerReceiver}
+                        {formatUnits(invoice.amountPerUser, 6)}
                       </TableCell>
                       <TableCell className="font-medium">
-                        {invoice.NoOfReceivers}
+                        {invoice.receivers?.length}
                       </TableCell>
                       <TableCell className="font-medium">
-                        {invoice.Date}
+                        {convertTimestampToDateTime(
+                          Number(invoice.timestamp) * 1000
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
-              </>
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="w-full flex py-32 items-center justify-center">
+                <span className="text-base">No Data Available</span>
+              </div>
             )}
-          </TableBody>
-        </Table>
+          </div>
+        )}
       </div>
     </>
   );
