@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/select";
 import { FaArrowRight } from "react-icons/fa";
 import { GIVEAWAY_CHAINS } from "@/components/data";
+import { Button } from "@/components/ui/button";
+import { RiLoader4Fill } from "react-icons/ri";
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -128,9 +130,28 @@ export default function Giveaway() {
               </SelectContent>
             </Select>
           </div>
+
+          <div className="w-full flex justify-between gap-10 py-10">
+            <Button className="bg-pink-200 hover:bg-pink-600 rounded-md shadow-md text-sm w-full font-semibold text-black">
+              {false ? (
+                <RiLoader4Fill className="animate-spin w-6 h-6" />
+              ) : (
+                "Approve Tokens"
+              )}
+            </Button>
+            <Button className="bg-pink-200 hover:bg-pink-600 rounded-md shadow-md text-sm w-full font-semibold text-black">
+              {false ? (
+                <RiLoader4Fill className="animate-spin w-6 h-6" />
+              ) : (
+                "Send Giveaway"
+              )}
+            </Button>
+          </div>
         </div>
 
-        <h2>Transaction History</h2>
+        <h2 className="w-[80%] px-5 bg-white py-3 rounded-xl my-5 text-center font-semibold">
+          Transaction History
+        </h2>
         <div className="bg-white flex flex-col gap-3 w-full p-4 rounded-lg mb-10 ">
           <Table>
             <TableHeader>
