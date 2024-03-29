@@ -10,9 +10,15 @@ import {
   TableBody,
   TableCell,
 } from "./ui/table";
-import { invoices } from "./data";
+import { RiLoader4Fill } from "react-icons/ri";
 
-export const Txns = () => {
+export const Txns = ({
+  data,
+  isLoading,
+}: {
+  data: any;
+  isLoading: boolean;
+}) => {
   return (
     <>
       {" "}
@@ -33,43 +39,62 @@ export const Txns = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {invoices.map((invoice) => (
-              <TableRow key={invoice["#"]}>
-                <TableCell className="font-medium">{invoice["#"]}</TableCell>
-                <TableCell>
-                  <div className="p-1 text-gray-800 bg-gray-400 rounded-md font-medium text-center">
-                    {shortenAccount(invoice.txnHash)}
+            {isLoading ? (
+              <div className="w-full flex flex-col gap-2 items-center justify-center">
+                <RiLoader4Fill className="animate-spin w-16 h-16" />
+                <span className="text-lg">Loading Data</span>
+              </div>
+            ) : (
+              <>
+                {data.length === 0 && (
+                  <div className="w-full flex items-center justify-center">
+                    <span className="text-lg">No Data Available</span>
                   </div>
-                </TableCell>
-                <TableCell className="w-fit">
-                  <div className="py-1 px-2 bg-gray-100 flex items-center rounded-md justify-start w-fit">
-                    <span className="font-semibold text-black text-sm">
-                      {shortenAccount(invoice.Giver)}
-                    </span>
-                    <IoCopy
-                      className="ml-2 h-4 w-4 text-blue-400 cursor-pointer"
-                      title="Copy"
-                    />
-                    <TiExport
-                      className="ml-3 h-4 w-4 text-green-800 cursor-pointer"
-                      title="explorer"
-                    />
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="p-1 text-gray-800 bg-gray-400 rounded-md font-medium text-center">
-                    {invoice.totalAmount}
-                  </div>
-                </TableCell>
-                <TableCell className="font-medium">
-                  {invoice.amountPerReceiver}
-                </TableCell>
-                <TableCell className="font-medium">
-                  {invoice.NoOfReceivers}
-                </TableCell>
-                <TableCell className="font-medium">{invoice.Date}</TableCell>
-              </TableRow>
-            ))}
+                )}
+                {data.length > 0 &&
+                  data.map((invoice: any, i: number) => (
+                    <TableRow key={i}>
+                      <TableCell className="font-medium">
+                        {invoice["#"]}
+                      </TableCell>
+                      <TableCell>
+                        <div className="p-1 text-gray-800 bg-gray-400 rounded-md font-medium text-center">
+                          {shortenAccount(invoice.txnHash)}
+                        </div>
+                      </TableCell>
+                      <TableCell className="w-fit">
+                        <div className="py-1 px-2 bg-gray-100 flex items-center rounded-md justify-start w-fit">
+                          <span className="font-semibold text-black text-sm">
+                            {shortenAccount(invoice.Giver)}
+                          </span>
+                          <IoCopy
+                            className="ml-2 h-4 w-4 text-blue-400 cursor-pointer"
+                            title="Copy"
+                          />
+                          <TiExport
+                            className="ml-3 h-4 w-4 text-green-800 cursor-pointer"
+                            title="explorer"
+                          />
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="p-1 text-gray-800 bg-gray-400 rounded-md font-medium text-center">
+                          {invoice.totalAmount}
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {invoice.amountPerReceiver}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {invoice.NoOfReceivers}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {invoice.Date}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </>
+            )}
           </TableBody>
         </Table>
       </div>

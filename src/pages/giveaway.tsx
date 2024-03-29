@@ -9,20 +9,19 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { FaArrowRight } from "react-icons/fa";
-import { FANTOM_CONTRACT_ADDRESS, GIVEAWAY_CHAINS } from "@/components/data";
+import {
+  FANTOM_CONTRACT_ADDRESS,
+  GIVEAWAY_CHAINS,
+  invoices,
+} from "@/components/data";
 import { Button } from "@/components/ui/button";
 import { RiLoader4Fill } from "react-icons/ri";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import {
-  useAccount,
-  useSwitchChain,
-  useWaitForTransactionReceipt,
-  useWriteContract,
-} from "wagmi";
+import { useAccount, useSwitchChain, useWriteContract } from "wagmi";
 import { config } from "@/config/wagmiConfig";
 import { SwitchChain } from "@/utils/switchNetwork";
-import { erc20Abi, parseUnits, toHex } from "viem";
+import { erc20Abi, isAddress, parseUnits, toHex } from "viem";
 import { Txns } from "@/components/txns";
 import { Input } from "@/components/ui/input";
 import {
@@ -30,6 +29,7 @@ import {
   Environment,
   GasToken,
 } from "@axelar-network/axelarjs-sdk";
+import GiveAwayContractABI from "@/components/ABI.json";
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -40,6 +40,10 @@ export default function Giveaway() {
   const { chains } = useSwitchChain({ config });
   const { address, chain } = useAccount();
 
+  // txn data
+  const [txnLoading, setTxnLoading] = useState(false);
+  const [txnData, setTxnData] = useState<any>(invoices);
+
   //states of the giveaway detailss
   const [senderChain, setSenderChain] = useState(
     chain ? chains.indexOf(chain).toString() : "0"
@@ -47,13 +51,13 @@ export default function Giveaway() {
   const [receiverChain, setReceiverChain] = useState("arbitrum-sepolia");
   const [token, setToken] = useState("aUSDC");
   const [tokenAmount, setTokenAmount] = useState(20);
-  const [addresses, setAddresses] = useState("");
+  const [addresses, setAddresses] = useState("0xabc...,0x123...");
 
   /// button states
   const [approveBtn, setAprroveBtn] = useState(true);
   const [approveBtnLoading, setAprroveBtnLoading] = useState(false);
   const [sendBtnLoading, setSendBtnLoading] = useState(false);
-  const [sendBtn, setSendBtn] = useState(false);
+  const [sendBtn, setSendBtn] = useState(true);
 
   /// Axelar
   const api = new AxelarQueryAPI({ environment: Environment.TESTNET });
@@ -62,7 +66,9 @@ export default function Giveaway() {
   const { data: USDCData, writeContractAsync: approveWrite } =
     useWriteContract();
 
-  const [gasFee, setGasFee] = useState<any>(0);
+  // Send tokens giveaway
+  const { data: giveawayData, writeContractAsync: giveawayWrite } =
+    useWriteContract();
 
   const changeNetwork = async (e: string) => {
     setSenderChain(e);
@@ -71,6 +77,12 @@ export default function Giveaway() {
       chainName: chains[Number(e)].name,
       rpcUrls: [...chains[Number(e)].rpcUrls.default.http],
     });
+  };
+
+  const checkAllAddresses = () => {
+    let receiversAddressesArray = addresses.split(",");
+    let isAllCorrect = receiversAddressesArray.every((add) => isAddress(add));
+    return { receiversAddressesArray, isAllCorrect };
   };
 
   const gasEstimator = async () => {
@@ -96,7 +108,7 @@ export default function Giveaway() {
       700000,
       2
     );
-    setGasFee(gas);
+    return gas;
   };
 
   const TokenApproval = async () => {
@@ -106,6 +118,7 @@ export default function Giveaway() {
         return;
       }
       let currentChain = GIVEAWAY_CHAINS[Number(senderChain)];
+      // toast saying starting
       setAprroveBtnLoading(true);
       await approveWrite(
         {
@@ -117,7 +130,19 @@ export default function Giveaway() {
             parseUnits(tokenAmount.toString(), 6),
           ],
         },
-        { onSuccess: () => {} }
+        {
+          onSuccess: () => {
+            setAprroveBtnLoading(false);
+            setAprroveBtn(true);
+            setSendBtn(false);
+
+            // toast saying done
+          },
+          onError: () => {
+            setAprroveBtnLoading(false);
+            // toast saying error
+          },
+        }
       );
 
       //toast.info("Approving...", toastOptions);
@@ -127,7 +152,51 @@ export default function Giveaway() {
   };
 
   const SendGiveaway = async () => {
-    await gasEstimator();
+    try {
+      let gasFee: any = await gasEstimator();
+
+      if (!gasFee) return null;
+
+      let addressesInfo = checkAllAddresses();
+
+      if (!addressesInfo.isAllCorrect) return null;
+
+      let currentChain = GIVEAWAY_CHAINS[Number(senderChain)];
+
+      // toast saying starting
+      setSendBtnLoading(true);
+      await giveawayWrite(
+        {
+          address: currentChain.Giveaway_Address as `0x${string}`,
+          abi: GiveAwayContractABI,
+          functionName: "giveTokensAway",
+          args: [
+            receiverChain,
+            GIVEAWAY_CHAINS.find((chain) => chain.chainName === receiverChain)
+              ?.Giveaway_Address,
+            addressesInfo.receiversAddressesArray,
+            "aUSDC",
+            parseUnits(tokenAmount.toString(), 6),
+          ],
+          value: gasFee,
+        },
+        {
+          onSuccess: () => {
+            setSendBtnLoading(false);
+            setSendBtn(true);
+            setAprroveBtn(false);
+
+            // toast saying done
+          },
+          onError: () => {
+            setSendBtnLoading (false);
+            // toast saying error
+          },
+        }
+      );
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   useEffect(() => {
@@ -245,7 +314,7 @@ export default function Giveaway() {
           </div>
         </div>
 
-        <Txns />
+        <Txns data={txnData} isLoading={txnLoading} />
       </div>
     </div>
   );
