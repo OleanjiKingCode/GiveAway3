@@ -10,28 +10,22 @@ export const GIVEAWAY_CHAINS = [
     name: "Polygon Mumbai",
     chainName: "Polygon",
     chainId: 80001,
+    aUSDC_CA: "0x2c852e740B62308c46DD29B982FBb650D063Bd07",
+    Giveaway_Address: "0x349228Bf935323eE3C300B9C45082a4476F35315",
   },
   {
     name: "Arbitrum Sepolia",
     chainName: "arbitrum-sepolia",
     chainId: 421614,
+    aUSDC_CA: "0xA2Ba06a76eC793d1Faf23Cc8220A887402b27331",
+    Giveaway_Address: "0xaFF20Ddb84F72e562ccd83a2dB5e028b03b79703",
   },
   {
     name: "Fantom Testnet",
     chainName: "Fantom",
     chainId: 4002,
-  },
-];
-
-export const ASSET_COINS = [
-  { name: "aUSDC", symbol: "aUSDC" },
-  {
-    name: "Axelar",
-    symbol: "AXL",
-  },
-  {
-    name: "Wrapped Fantom",
-    symbol: "WFTM",
+    aUSDC_CA: "0x75Cc4fDf1ee3E781C1A3Ee9151D5c6Ce34Cf5C61",
+    Giveaway_Address: "0xaFF20Ddb84F72e562ccd83a2dB5e028b03b79703",
   },
 ];
 

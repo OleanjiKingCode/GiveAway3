@@ -9,17 +9,22 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { FaArrowRight } from "react-icons/fa";
-import { ASSET_COINS, GIVEAWAY_CHAINS } from "@/components/data";
+import { FANTOM_CONTRACT_ADDRESS, GIVEAWAY_CHAINS } from "@/components/data";
 import { Button } from "@/components/ui/button";
 import { RiLoader4Fill } from "react-icons/ri";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { useAccount, useSwitchChain } from "wagmi";
+import { useAccount, useSwitchChain, useWriteContract } from "wagmi";
 import { config } from "@/config/wagmiConfig";
 import { SwitchChain } from "@/utils/switchNetwork";
-import { toHex } from "viem";
+import { erc20Abi, parseUnits, toHex } from "viem";
 import { Txns } from "@/components/txns";
 import { Input } from "@/components/ui/input";
+import {
+  AxelarQueryAPI,
+  Environment,
+  GasToken,
+} from "@axelar-network/axelarjs-sdk";
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -30,6 +35,7 @@ export default function Giveaway() {
   const { chains } = useSwitchChain({ config });
   const { address, chain } = useAccount();
 
+  //states of the giveaway detailss
   const [senderChain, setSenderChain] = useState(
     chain ? chains.indexOf(chain).toString() : "0"
   );
@@ -38,13 +44,70 @@ export default function Giveaway() {
   const [tokenAmount, setTokenAmount] = useState(20);
   const [addresses, setAddresses] = useState("");
 
+  /// Axelar
+  const api = new AxelarQueryAPI({ environment: Environment.TESTNET });
+
+  // Approve token to be spent by the contract
+  const { data: useContractWriteUSDCData, writeContractAsync: approveWrite } =
+    useWriteContract();
+
+  const [gasFee, setGasFee] = useState<any>(0);
+
+  const gasEstimator = async () => {
+    let symbol = "";
+    switch (Number(senderChain)) {
+      case 0:
+        symbol = GasToken.MATIC;
+        break;
+      case 1:
+        symbol = GasToken.FTM;
+        break;
+      case 2:
+        symbol = GasToken.ARBITRUM_SEPOLIA;
+        break;
+
+      default:
+        break;
+    }
+    const gas = await api.estimateGasFee(
+      GIVEAWAY_CHAINS[Number(senderChain)].chainName,
+      receiverChain,
+      symbol,
+      700000,
+      2
+    );
+    setGasFee(gas);
+  };
+
+  const handleApprove = async () => {
+    if (!tokenAmount) {
+      //toast.error("Please enter amount", toastOptions);
+      return;
+    }
+    let currentChain = GIVEAWAY_CHAINS[Number(senderChain)];
+    await approveWrite({
+      address: currentChain.aUSDC_CA as `0x${string}`, // Address of the aUSDC contract on Fantom
+      abi: erc20Abi,
+      functionName: "approve",
+      args: [
+        currentChain.Giveaway_Address as `0x${string}`,
+        parseUnits(tokenAmount.toString(), 6),
+      ],
+    });
+
+    //toast.info("Approving...", toastOptions);
+  };
+
+  const SendGiveaway = async () => {
+    await gasEstimator();
+  };
+
   useEffect(() => {
     setSenderChain(chain ? chains.indexOf(chain).toString() : "0");
   }, [chain]);
 
   const changeNetwork = async (e: string) => {
     setSenderChain(e);
-    console.log(e);
     await SwitchChain({
       chainId: toHex(chains[Number(e)].id),
       chainName: chains[Number(e)].name,
@@ -91,7 +154,8 @@ export default function Giveaway() {
                   className="w-fit"
                   onChange={(e) => setTokenAmount(Number(e.target.value))}
                 />
-                <Select onValueChange={(e) => setToken(e)} value={token}>
+                <span>aUSDC</span>
+                {/* <Select onValueChange={(e) => setToken(e)} value={token}>
                   <SelectTrigger className="w-[150px]">
                     <SelectValue placeholder="Token" />
                   </SelectTrigger>
@@ -102,7 +166,7 @@ export default function Giveaway() {
                       </SelectItem>
                     ))}
                   </SelectContent>
-                </Select>
+                </Select> */}
               </div>
             </div>
 
