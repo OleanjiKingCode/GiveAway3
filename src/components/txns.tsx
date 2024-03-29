@@ -1,7 +1,4 @@
-import shortenAccount from "@/utils/shoternAddress";
-import React from "react";
-import { IoCopy } from "react-icons/io5";
-import { TiExport } from "react-icons/ti";
+import React, { useState } from "react";
 import {
   Table,
   TableHeader,
@@ -12,8 +9,19 @@ import {
 } from "./ui/table";
 import { RiLoader4Fill } from "react-icons/ri";
 import { formatUnits } from "viem";
-import { formatTimestamp } from "@/utils/formatTimeStamp";
 import { Popover, PopoverTrigger, PopoverContent } from "./ui/popover";
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@radix-ui/react-alert-dialog";
+import { AlertDialogHeader, AlertDialogFooter } from "./ui/alert-dialog";
+import { ReceiversModal } from "./ReceiversModal";
+import { Button } from "./ui/button";
 
 export const Txns = ({
   data,
@@ -22,6 +30,8 @@ export const Txns = ({
   data: any;
   isLoading: boolean;
 }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [receivers, setReceivers] = useState([]);
   function convertTimestampToDateTime(timestamp: number) {
     const date = new Date(timestamp);
     return date.toLocaleString();
@@ -60,18 +70,15 @@ export const Txns = ({
                     <TableRow key={i}>
                       <TableCell className="font-medium">{i + 1}</TableCell>
                       <TableCell className="font-medium">
-                        <Popover>
-                          <PopoverTrigger>View All Receivers</PopoverTrigger>
-                          <PopoverContent>
-                            <div className="w-full">
-                              {invoice.receivers?.map(
-                                (person: any, i: number) => (
-                                  <p key={i}>{person}</p>
-                                )
-                              )}
-                            </div>
-                          </PopoverContent>
-                        </Popover>
+                        <div
+                          className="text-base cursor-pointer"
+                          onClick={() => {
+                            setIsOpen(true);
+                            setReceivers(invoice.receivers);
+                          }}
+                        >
+                          View all receivers
+                        </div>
                       </TableCell>
                       <TableCell>{invoice.destinationChain}</TableCell>
                       <TableCell>{invoice.symbol}</TableCell>
@@ -101,6 +108,11 @@ export const Txns = ({
           </div>
         )}
       </div>
+      <ReceiversModal
+        data={receivers}
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+      />
     </>
   );
 };

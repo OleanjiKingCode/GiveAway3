@@ -6,7 +6,7 @@ import { RiGithubFill } from "react-icons/ri";
 export const Navbar = () => {
   return (
     <div className="w-full flex flex-row justify-between px-5 bg-pink-100 items-center pt-9 pb-2 text-black">
-      <div className="w-full flex flex-row justify-between px-10 items-center py-3 bg-white rounded-3xl">
+      <div className="w-full flex flex-col sm:flex-row justify-between px-10 items-center py-3 gap-3 sm:gap-0 bg-white rounded-3xl">
         <Link href="/">
           <div className="font-semibold text-lg">GiveAway3</div>
         </Link>

@@ -6,7 +6,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import React from "react";
-import { FaArrowRight } from "react-icons/fa";
+import { FaArrowDown, FaArrowRight } from "react-icons/fa";
 import { GIVEAWAY_CHAINS } from "./data";
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
@@ -27,7 +27,7 @@ export const ActionArea = ({
   receiverChain: string;
 }) => {
   return (
-    <div className="w-full flex gap-6 items-center justify-center">
+    <div className="w-full flex flex-col gap-2  md:flex-row md:gap-6 items-center justify-center">
       <div className="flex flex-col gap-3 items-center">
         <Label>Sending Chain</Label>
         <Select onValueChange={(e) => changeNetwork(e)} value={senderChain}>
@@ -44,7 +44,8 @@ export const ActionArea = ({
         </Select>
       </div>
 
-      <FaArrowRight className="h-3 w-3 mt-5" />
+      <FaArrowRight className="h-3 w-3 mt-5 hidden md:flex" />
+      <FaArrowDown className="h-3 w-3 mb-3 md:hidden" />
 
       <div className="flex flex-col gap-3 items-center">
         <Label>Token</Label>
@@ -60,7 +61,8 @@ export const ActionArea = ({
         </div>
       </div>
 
-      <FaArrowRight className="h-3 w-3 mt-5" />
+      <FaArrowRight className="h-3 w-3 mt-5 hidden md:flex" />
+      <FaArrowDown className="h-3 w-3 mb-3 md:hidden" />
 
       <div className="flex flex-col gap-3 items-center">
         <Label>Receiving Chain</Label>

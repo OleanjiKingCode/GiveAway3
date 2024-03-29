@@ -281,20 +281,15 @@ export default function Giveaway() {
   }, [chain]);
 
   useEffect(() => {
-    console.log(
-      historyDataSuccessful,
-      historyData,
-      GIVEAWAY_CHAINS[Number(senderChain)]
-    );
     setTxnData(historyData);
-  }, [historyDataSuccessful]);
+  }, [historyDataSuccessful, historyData]);
 
   return (
     <div
       className={`w-full flex flex-col min-h-screen bg-pink-100 ${roboto.className} `}
     >
       <Navbar />
-      <div className="w-full flex flex-col min-h-[80vh] items-center justify-center px-3 md:px-20 mt-[140px]">
+      <div className="w-full flex flex-col min-h-[80vh] items-center justify-center px-3 md:px-20 mt-[40px]">
         <div className=" w-full flex flex-col items-center justify-center gap-10 mb-[10px]">
           <ActionArea
             changeNetwork={changeNetwork}

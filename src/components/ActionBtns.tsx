@@ -18,7 +18,7 @@ export const ActionBtns = ({
   sendBtnLoading: boolean;
 }) => {
   return (
-    <div className="w-full flex justify-center gap-10 py-10">
+    <div className="w-full flex justify-center gap-10 pb-10">
       <Button
         disabled={approveBtn}
         className="bg-pink-200 hover:bg-pink-600 rounded-md shadow-md text-sm w-fit  text-black"
