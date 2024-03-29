@@ -14,7 +14,12 @@ import { Button } from "@/components/ui/button";
 import { RiLoader4Fill } from "react-icons/ri";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { useAccount, useSwitchChain, useWriteContract } from "wagmi";
+import {
+  useAccount,
+  useSwitchChain,
+  useWaitForTransactionReceipt,
+  useWriteContract,
+} from "wagmi";
 import { config } from "@/config/wagmiConfig";
 import { SwitchChain } from "@/utils/switchNetwork";
 import { erc20Abi, parseUnits, toHex } from "viem";
@@ -44,14 +49,29 @@ export default function Giveaway() {
   const [tokenAmount, setTokenAmount] = useState(20);
   const [addresses, setAddresses] = useState("");
 
+  /// button states
+  const [approveBtn, setAprroveBtn] = useState(true);
+  const [approveBtnLoading, setAprroveBtnLoading] = useState(false);
+  const [sendBtnLoading, setSendBtnLoading] = useState(false);
+  const [sendBtn, setSendBtn] = useState(false);
+
   /// Axelar
   const api = new AxelarQueryAPI({ environment: Environment.TESTNET });
 
   // Approve token to be spent by the contract
-  const { data: useContractWriteUSDCData, writeContractAsync: approveWrite } =
+  const { data: USDCData, writeContractAsync: approveWrite } =
     useWriteContract();
 
   const [gasFee, setGasFee] = useState<any>(0);
+
+  const changeNetwork = async (e: string) => {
+    setSenderChain(e);
+    await SwitchChain({
+      chainId: toHex(chains[Number(e)].id),
+      chainName: chains[Number(e)].name,
+      rpcUrls: [...chains[Number(e)].rpcUrls.default.http],
+    });
+  };
 
   const gasEstimator = async () => {
     let symbol = "";
@@ -79,23 +99,31 @@ export default function Giveaway() {
     setGasFee(gas);
   };
 
-  const handleApprove = async () => {
-    if (!tokenAmount) {
-      //toast.error("Please enter amount", toastOptions);
-      return;
-    }
-    let currentChain = GIVEAWAY_CHAINS[Number(senderChain)];
-    await approveWrite({
-      address: currentChain.aUSDC_CA as `0x${string}`, // Address of the aUSDC contract on Fantom
-      abi: erc20Abi,
-      functionName: "approve",
-      args: [
-        currentChain.Giveaway_Address as `0x${string}`,
-        parseUnits(tokenAmount.toString(), 6),
-      ],
-    });
+  const TokenApproval = async () => {
+    try {
+      if (!tokenAmount) {
+        //toast.error("Please enter amount", toastOptions);
+        return;
+      }
+      let currentChain = GIVEAWAY_CHAINS[Number(senderChain)];
+      setAprroveBtnLoading(true);
+      await approveWrite(
+        {
+          address: currentChain.aUSDC_CA as `0x${string}`, // Address of the aUSDC contract on Fantom
+          abi: erc20Abi,
+          functionName: "approve",
+          args: [
+            currentChain.Giveaway_Address as `0x${string}`,
+            parseUnits(tokenAmount.toString(), 6),
+          ],
+        },
+        { onSuccess: () => {} }
+      );
 
-    //toast.info("Approving...", toastOptions);
+      //toast.info("Approving...", toastOptions);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   const SendGiveaway = async () => {
@@ -105,15 +133,6 @@ export default function Giveaway() {
   useEffect(() => {
     setSenderChain(chain ? chains.indexOf(chain).toString() : "0");
   }, [chain]);
-
-  const changeNetwork = async (e: string) => {
-    setSenderChain(e);
-    await SwitchChain({
-      chainId: toHex(chains[Number(e)].id),
-      chainName: chains[Number(e)].name,
-      rpcUrls: [...chains[Number(e)].rpcUrls.default.http],
-    });
-  };
 
   return (
     <div
@@ -203,15 +222,21 @@ export default function Giveaway() {
           </div>
 
           <div className="w-full flex justify-center gap-10 py-10">
-            <Button className="bg-pink-200 hover:bg-pink-600 rounded-md shadow-md text-sm w-fit  text-black">
-              {false ? (
+            <Button
+              disabled={approveBtn}
+              className="bg-pink-200 hover:bg-pink-600 rounded-md shadow-md text-sm w-fit  text-black"
+            >
+              {approveBtnLoading ? (
                 <RiLoader4Fill className="animate-spin w-6 h-6" />
               ) : (
                 "Approve Tokens"
               )}
             </Button>
-            <Button className="bg-pink-200 hover:bg-pink-600 rounded-md shadow-md text-sm w-fit  text-black">
-              {false ? (
+            <Button
+              disabled={sendBtn}
+              className="bg-pink-200 hover:bg-pink-600 rounded-md shadow-md text-sm w-fit  text-black"
+            >
+              {sendBtnLoading ? (
                 <RiLoader4Fill className="animate-spin w-6 h-6" />
               ) : (
                 "Send Giveaway"
