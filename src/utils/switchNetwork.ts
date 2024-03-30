@@ -1,3 +1,5 @@
+declare var window: any
+
 //Switch Network Functionality
 export const SwitchChain = async ({
   chainId,
@@ -10,7 +12,7 @@ export const SwitchChain = async ({
 }) => {
   try {
     await window.ethereum?.request({
-      method: 'wallet_switchEthereumChain',
+      method: "wallet_switchEthereumChain",
       params: [{ chainId }],
     });
   } catch (switchError: any) {
@@ -18,7 +20,7 @@ export const SwitchChain = async ({
     if (err.code === 4902) {
       try {
         await window.ethereum?.request({
-          method: 'wallet_addEthereumChain',
+          method: "wallet_addEthereumChain",
           params: [
             {
               chainId,
