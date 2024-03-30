@@ -65,7 +65,7 @@ export const Txns = ({
                             setReceivers(invoice.receivers);
                           }}
                         >
-                          View all receivers
+                          view receivers
                         </div>
                       </TableCell>
                       <TableCell>{invoice.destinationChain}</TableCell>
