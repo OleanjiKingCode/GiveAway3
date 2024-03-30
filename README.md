@@ -1,4 +1,6 @@
-# Giveaway3 DApp
+![image](https://github.com/OleanjiKingCode/GiveAway3/assets/75235148/f89e7c73-9bca-415e-b5c4-9220b9099ea4)
+
+# Giveaway3 DApp 💸
 Welcome to Giveaway3, a decentralized application (DApp) built using Axelar SDK. Giveaway3 allows users to gift tokens from one blockchain to another seamlessly. Currently, only aUSDC is supported as the token for gifting. Users can send and receive tokens across different blockchains, including Fantom Testnet, Mumbai Polygon, and Arbitrum Sepolia.
 
 ## Features
@@ -7,6 +9,9 @@ Welcome to Giveaway3, a decentralized application (DApp) built using Axelar SDK.
 - **Supported Blockchains**: Fantom Testnet, Mumbai Polygon, and Arbitrum Sepolia are supported for sending and receiving tokens.
 - **User-Friendly Interface**: The interface is designed to be intuitive, guiding users through the process step-by-step.
 - **Transaction History**: A transaction history table displays all past transactions for reference.
+
+![screencapture-localhost-3001-giveaway-2024-03-30-08_28_31](https://github.com/OleanjiKingCode/GiveAway3/assets/75235148/75cad8c4-47f5-4818-bf3d-dce365480e31)
+
 
 ## How to Use
  
