@@ -32,7 +32,7 @@ const roboto = Roboto({
 });
 
 export default function Giveaway() {
-  const { address } = useAccount();
+  const { address, isConnected } = useAccount();
   const { chain, chains } = useNetwork();
 
   const { toast } = useToast();
@@ -321,40 +321,46 @@ export default function Giveaway() {
       className={`w-full flex flex-col min-h-screen bg-pink-100 ${roboto.className} `}
     >
       <Navbar />
-      <div className="w-full flex flex-col min-h-[80vh] items-center justify-center px-3 md:px-20 mt-[40px]">
-        <div className=" w-full flex flex-col items-center justify-center gap-10 mb-[10px]">
-          <ActionArea
-            changeNetwork={changeNetwork}
-            senderChain={senderChain}
-            tokenAmount={tokenAmount}
-            setTokenAmount={setTokenAmount}
-            setReceiverChain={setReceiverChain}
-            receiverChain={receiverChain}
-          />
+      {isConnected ? (
+        <div className="w-full flex flex-col min-h-[80vh] items-center justify-center px-3 md:px-20 mt-[40px]">
+          <div className=" w-full flex flex-col items-center justify-center gap-10 mb-[10px]">
+            <ActionArea
+              changeNetwork={changeNetwork}
+              senderChain={senderChain}
+              tokenAmount={tokenAmount}
+              setTokenAmount={setTokenAmount}
+              setReceiverChain={setReceiverChain}
+              receiverChain={receiverChain}
+            />
 
-          <div className="w-[60%] flex flex-col gap-3">
-            <Label htmlFor="addresses">Receivers Addresses:</Label>
-            <Textarea
-              placeholder="Paste or type in receivers addresses"
-              id="addresses"
-              disabled={textAreaDisabled}
-              value={addresses}
-              onChange={(e) => setAddresses(e.target.value)}
+            <div className="w-[60%] flex flex-col gap-3">
+              <Label htmlFor="addresses">Receivers Addresses:</Label>
+              <Textarea
+                placeholder="Paste or type in receivers addresses"
+                id="addresses"
+                disabled={textAreaDisabled}
+                value={addresses}
+                onChange={(e) => setAddresses(e.target.value)}
+              />
+            </div>
+
+            <ActionBtns
+              approveBtn={approveBtn}
+              sendBtn={sendBtn}
+              TokenApproval={TokenApproval}
+              SendGiveaway={SendGiveaway}
+              approveBtnLoading={approveBtnLoading}
+              sendBtnLoading={sendBtnLoading}
             />
           </div>
 
-          <ActionBtns
-            approveBtn={approveBtn}
-            sendBtn={sendBtn}
-            TokenApproval={TokenApproval}
-            SendGiveaway={SendGiveaway}
-            approveBtnLoading={approveBtnLoading}
-            sendBtnLoading={sendBtnLoading}
-          />
+          <Txns data={txnData} isLoading={isLoading} />
         </div>
-
-        <Txns data={txnData} isLoading={isLoading} />
-      </div>
+      ) : (
+        <div className="w-full flex flex-col min-h-[80vh] items-center justify-center px-3 md:px-20 mt-[40px]">
+          <h3>Connect your wallet </h3>
+        </div>
+      )}
     </div>
   );
 }
