@@ -1,28 +1,24 @@
-import { RainbowKitProvider, lightTheme } from "@rainbow-me/rainbowkit";
+import "@/styles/globals.css";
 import "@rainbow-me/rainbowkit/styles.css";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { lightTheme, RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import type { AppProps } from "next/app";
-import { WagmiProvider } from "wagmi";
-import "../styles/globals.css";
-import { config } from "@/config/wagmiConfig";
+import { WagmiConfig } from "wagmi";
 import { Toaster } from "@/components/ui/toaster";
-
-const client = new QueryClient();
+import { configWagmi } from "@/config/wagmiConfig";
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={client}>
-        <RainbowKitProvider
-          theme={lightTheme({
-            accentColor: "#dcaac7",
-            accentColorForeground: "white",
-          })}
-        >
-          <Component {...pageProps} />
-          <Toaster />
-        </RainbowKitProvider>
-      </QueryClientProvider>
-    </WagmiProvider>
+    <WagmiConfig config={configWagmi.wagmiConfig}>
+      <RainbowKitProvider
+        chains={configWagmi.chains}
+        theme={lightTheme({
+          accentColor: "#dcaac7",
+          accentColorForeground: "white",
+        })}
+      >
+        <Component {...pageProps} />
+        <Toaster />
+      </RainbowKitProvider>
+    </WagmiConfig>
   );
 }

@@ -1,19 +1,20 @@
 import { Roboto } from "next/font/google";
 import { Navbar } from "@/components/Navbar";
 import React, { useEffect, useState } from "react";
-import { GIVEAWAY_CHAINS, invoices } from "@/components/data";
+import { GIVEAWAY_CHAINS } from "@/components/data";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
+  erc20ABI,
   useAccount,
   useBalance,
-  useReadContract,
-  useSwitchChain,
-  useWriteContract,
+  useNetwork,
+  useContractRead,
+  useContractWrite,
+  useWaitForTransaction,
 } from "wagmi";
-import { config } from "@/config/wagmiConfig";
 import { SwitchChain } from "@/utils/switchNetwork";
-import { erc20Abi, formatEther, isAddress, parseUnits, toHex } from "viem";
+import { formatEther, isAddress, parseUnits, toHex } from "viem";
 import { Txns } from "@/components/txns";
 import {
   AxelarQueryAPI,
@@ -31,25 +32,29 @@ const roboto = Roboto({
 });
 
 export default function Giveaway() {
-  const { chains } = useSwitchChain({ config });
-  const { address, chain } = useAccount();
+  const { address } = useAccount();
+  const { chain, chains } = useNetwork();
+
   const { toast } = useToast();
 
   //user balance
-  const { data: userBal } = useBalance({
+  const { data: userBal, refetch: refectchUserBal } = useBalance({
     address: address,
   });
+
   // txn data
   const [txnLoading, setTxnLoading] = useState(false);
   const [txnData, setTxnData] = useState<any>();
 
   //states of the giveaway detailss
   const [senderChain, setSenderChain] = useState(
-    chain ? chains.indexOf(chain).toString() : "0"
+    chains.findIndex((chain) => chain.id === chain.id) < 0
+      ? "0"
+      : chains.findIndex((chain) => chain.id === chain.id).toString()
   );
   const [receiverChain, setReceiverChain] = useState("arbitrum-sepolia");
   const [tokenAmount, setTokenAmount] = useState(20);
-  const [addresses, setAddresses] = useState("0xabc...,0x123...");
+  const [addresses, setAddresses] = useState("Approve Token first");
 
   /// button states
   const [approveBtn, setAprroveBtn] = useState(false);
@@ -62,21 +67,45 @@ export default function Giveaway() {
   const api = new AxelarQueryAPI({ environment: Environment.TESTNET });
 
   // Approve token to be spent by the contract
-  const { writeContractAsync: approveWrite } = useWriteContract();
+  const { data: approveData, writeAsync: approveWrite } = useContractWrite({
+    address: GIVEAWAY_CHAINS[Number(senderChain)]?.aUSDC_CA as `0x${string}`,
+    abi: erc20ABI,
+    functionName: "approve",
+  });
+
+  const {
+    data: approveHashData,
+    isSuccess: approveHashSuccess,
+    isError: aprroveHashError,
+  } = useWaitForTransaction({
+    hash: approveData?.hash,
+  });
 
   // Send tokens giveaway
-  const { writeContractAsync: giveawayWrite } = useWriteContract();
+  const { data: giveawayData, writeAsync: giveawayWrite } = useContractWrite({
+    address: GIVEAWAY_CHAINS[Number(senderChain)]
+      ?.Giveaway_Address as `0x${string}`,
+    abi: GiveAwayContractABI,
+    functionName: "giveTokensAway",
+  });
 
-  // read data from contract
+  const {
+    data: giveawayHashData,
+    isSuccess: giveawayHashSuccess,
+    isError: giveawayHashError,
+  } = useWaitForTransaction({
+    hash: giveawayData?.hash,
+  });
+
   const {
     data: historyData,
     refetch,
     isLoading,
     isSuccess: historyDataSuccessful,
-  } = useReadContract({
-    abi: GiveAwayContractABI,
+  } = useContractRead({
     address: GIVEAWAY_CHAINS[Number(senderChain)]
-      .Giveaway_Address as `0x${string}`,
+      ?.Giveaway_Address as `0x${string}`,
+    abi: GiveAwayContractABI,
     functionName: "getAllGiveAwayItemsPerAddress",
     args: [address],
   });
@@ -112,6 +141,7 @@ export default function Giveaway() {
       default:
         break;
     }
+
     const gas = await api.estimateGasFee(
       GIVEAWAY_CHAINS[Number(senderChain)].chainName,
       receiverChain,
@@ -143,40 +173,12 @@ export default function Giveaway() {
           color: "black",
         },
       });
-      await approveWrite(
-        {
-          address: currentChain.aUSDC_CA as `0x${string}`,
-          abi: erc20Abi,
-          functionName: "approve",
-          args: [
-            currentChain.Giveaway_Address as `0x${string}`,
-            parseUnits(tokenAmount.toString(), 6),
-          ],
-        },
-        {
-          onSuccess: () => {
-            setAprroveBtnLoading(false);
-            setAprroveBtn(true);
-            setTextAreaDisabled(false);
-            setSendBtn(false);
-            toast({
-              description: "Successfully approved token",
-              style: {
-                backgroundColor: "#38ff89",
-                border: "1px solid green",
-                color: "black",
-              },
-            });
-          },
-          onError: () => {
-            setAprroveBtnLoading(false);
-            toast({
-              description: "Error occured during approval",
-              style: { backgroundColor: "red", color: "white" },
-            });
-          },
-        }
-      );
+      await approveWrite({
+        args: [
+          currentChain.Giveaway_Address as `0x${string}`,
+          parseUnits(`${tokenAmount}`, 6),
+        ],
+      });
     } catch (error) {
       console.log(error);
     }
@@ -209,6 +211,7 @@ export default function Giveaway() {
         setSendBtnLoading(false);
         return;
       }
+
       let currentChain = GIVEAWAY_CHAINS[Number(senderChain)];
 
       if (currentChain.chainName <= receiverChain) {
@@ -229,46 +232,17 @@ export default function Giveaway() {
           color: "black",
         },
       });
-      await giveawayWrite(
-        {
-          address: currentChain.Giveaway_Address as `0x${string}`,
-          abi: GiveAwayContractABI,
-          functionName: "giveTokensAway",
-          args: [
-            receiverChain,
-            GIVEAWAY_CHAINS.find((chain) => chain.chainName === receiverChain)
-              ?.Giveaway_Address,
-            addressesInfo.receiversAddressesArray,
-            "aUSDC",
-            parseUnits(tokenAmount.toString(), 6),
-          ],
-          value: gasFee,
-        },
-        {
-          onSuccess: () => {
-            setSendBtnLoading(false);
-            refetch();
-            setSendBtn(true);
-            setAprroveBtn(false);
-            toast({
-              description: "Giveaway successfully done!",
-              style: {
-                backgroundColor: "#38ff89",
-                border: "1px solid green",
-                color: "black",
-              },
-            });
-          },
-          onError: () => {
-            setSendBtnLoading(false);
-            setTextAreaDisabled(false);
-            toast({
-              description: "Error occured during giveaway",
-              style: { backgroundColor: "red", color: "white" },
-            });
-          },
-        }
-      );
+      await giveawayWrite({
+        args: [
+          receiverChain,
+          GIVEAWAY_CHAINS.find((chain) => chain.chainName === receiverChain)
+            ?.Giveaway_Address,
+          addressesInfo.receiversAddressesArray,
+          "aUSDC",
+          parseUnits(`${tokenAmount}`, 6),
+        ],
+        value: gasFee,
+      });
     } catch (error) {
       setSendBtnLoading(false);
       console.log(error);
@@ -276,7 +250,65 @@ export default function Giveaway() {
   };
 
   useEffect(() => {
-    setSenderChain(chain ? chains.indexOf(chain).toString() : "0");
+    if (approveHashSuccess) {
+      setAprroveBtnLoading(false);
+      setAddresses("Enter the addresses in this format: 0xabc...,0x123...");
+      setAprroveBtn(true);
+      setTextAreaDisabled(false);
+      setSendBtn(false);
+      toast({
+        description: "Successfully approved token",
+        style: {
+          backgroundColor: "#38ff89",
+          border: "1px solid green",
+          color: "black",
+        },
+      });
+    }
+    if (aprroveHashError) {
+      setAprroveBtnLoading(false);
+      toast({
+        description: "Error occured during approval",
+        style: { backgroundColor: "red", color: "white" },
+      });
+    }
+    refectchUserBal();
+  }, [approveHashSuccess, approveHashData, aprroveHashError]);
+
+  useEffect(() => {
+    if (giveawayHashSuccess) {
+      setSendBtnLoading(false);
+      refetch();
+      setSendBtn(true);
+      setAprroveBtn(false);
+      toast({
+        description: "Giveaway successfully done!",
+        style: {
+          backgroundColor: "#38ff89",
+          border: "1px solid green",
+          color: "black",
+        },
+      });
+    }
+    if (giveawayHashError) {
+      setSendBtnLoading(false);
+      setTextAreaDisabled(false);
+      toast({
+        description: "Error occured during giveaway",
+        style: { backgroundColor: "red", color: "white" },
+      });
+    }
+    refectchUserBal();
+  }, [giveawayHashData, giveawayHashSuccess, giveawayHashError]);
+
+  useEffect(() => {
+    refetch();
+  }, [senderChain]);
+
+  useEffect(() => {
+    setSenderChain(
+      chain ? chains.findIndex((c) => c.id === chain.id).toString() : "0"
+    );
     refetch();
   }, [chain]);
 

@@ -9,19 +9,7 @@ import {
 } from "./ui/table";
 import { RiLoader4Fill } from "react-icons/ri";
 import { formatUnits } from "viem";
-import { Popover, PopoverTrigger, PopoverContent } from "./ui/popover";
-import {
-  AlertDialog,
-  AlertDialogTrigger,
-  AlertDialogContent,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogCancel,
-  AlertDialogAction,
-} from "@radix-ui/react-alert-dialog";
-import { AlertDialogHeader, AlertDialogFooter } from "./ui/alert-dialog";
 import { ReceiversModal } from "./ReceiversModal";
-import { Button } from "./ui/button";
 
 export const Txns = ({
   data,
@@ -71,7 +59,7 @@ export const Txns = ({
                       <TableCell className="font-medium">{i + 1}</TableCell>
                       <TableCell className="font-medium">
                         <div
-                          className="text-base cursor-pointer"
+                          className="text-base cursor-pointer text-blue-500 hover:underline"
                           onClick={() => {
                             setIsOpen(true);
                             setReceivers(invoice.receivers);
